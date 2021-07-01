@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>CRS.Simple example - Leaflet</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+
+
+</head>
+
+<body>
+
+    <div id='map'></div>
+
+    <script>
+
+        const x = 2880;
+        const y = 5120;
+
+        var map = L.map('map', {
+            crs: L.CRS.Simple,
+            minZoom: -3
+        });
+
+        var yx = L.latLng;
+        var xy = function (x, y) {
+            if (L.Util.isArray(x)) {    // When doing xy([x, y]);
+                return yx(x[1], x[0]);
+            }
+            return yx(y, x);  // When doing xy(x, y);
+        };
+
+        var bounds = [xy(0, 0), xy(x, y)];
+        var image = L.imageOverlay('img/Full Site@2x.png', bounds).addTo(map);
+
+        map.setView(xy(1262, 2452), -1);
+
+        d3.csv("data/Polygon details.csv")
+            .then(data => {
+                console.log('data', data);
+                data.forEach(i => {
+                    const p = i.points.split("- ").map(s => +s)
+                    console.log('p', p);
+                    if (p.length > 0) {
+                        const poly = _.chunk(p, 2)
+                            .map(a => a.reverse())
+                            .map(a => {
+                                return [
+                                    y - a[0],
+                                    //x - a[1]
+                                    a[1]
+                                ]
+                            })
+                        console.log('poly', poly);
+                        var polygon = L.polygon(poly, { color: 'red' }).addTo(map);
+                    }
+                });
+            })
+
+    </script>
+
+
+
+</body>
+
+</html>
