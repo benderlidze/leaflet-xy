@@ -48,13 +48,14 @@
                 buildPolygons({
                     x: 2880, //width
                     y: 5120, //height
-                    polygonsData: data
+                    polygonsData: data,
+                    imageUrl: 'img/Full Site@2x.png'
                 })
 
             })
 
 
-        function buildPolygons({ x, y, polygonsData, }) {
+        function buildPolygons({ x, y, polygonsData, imageUrl }) {
 
             const polygons = [];
 
@@ -67,22 +68,19 @@
             };
 
             var bounds = [xy(0, 0), xy(x, y)];
-            var image = L.imageOverlay('img/Full Site@2x.png', bounds).addTo(map);
-            map.setView(xy(1262, 2452), -1);
+            var image = L.imageOverlay(imageUrl, bounds).addTo(map);
+            map.setView(xy(x / 2, y / 2), -1);
 
             const marker = L.marker([y / 2, x / 2], { draggable: 'true' }).addTo(map)
             marker.on('dragend', function (event) {
                 var marker = event.target;
                 var position = marker.getLatLng();
-                console.log('position', position);
                 map.panTo(new L.LatLng(position.lat, position.lng))
 
                 polygons.filter(poly => {
-                    console.log('i', poly);
                     const inside = isMarkerInsidePolygon(marker, poly);
                     console.log('inside', inside);
                     if (inside) {
-                        console.log('polygon', poly);
                         const name = poly.options.polygonName;
                         const room = poly.options.roomName;
                         marker.bindPopup(`Inside ${name} ${room}`).openPopup();
@@ -99,11 +97,9 @@
                         .map(a => {
                             return [
                                 y - a[0],
-                                //x - a[1]
                                 a[1]
                             ]
                         })
-                    console.log('poly', poly);
                     var polygon = L.polygon(poly, { color: 'red', polygonName: i.polygonName, roomName: i.roomName }).addTo(map);
                     polygons.push(polygon)
                 }
