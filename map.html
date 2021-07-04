@@ -36,48 +36,99 @@
 
     <script>
 
-        const x = 2880;
-        const y = 5120;
-
         var map = L.map('map', {
             crs: L.CRS.Simple,
             minZoom: -3
         });
 
-        var yx = L.latLng;
-        var xy = function (x, y) {
-            if (L.Util.isArray(x)) {    // When doing xy([x, y]);
-                return yx(x[1], x[0]);
-            }
-            return yx(y, x);  // When doing xy(x, y);
-        };
-
-        var bounds = [xy(0, 0), xy(x, y)];
-        var image = L.imageOverlay('img/Full Site@2x.png', bounds).addTo(map);
-
-        map.setView(xy(1262, 2452), -1);
-
         d3.csv("data/Polygon details.csv")
             .then(data => {
                 console.log('data', data);
-                data.forEach(i => {
-                    const p = i.points.split("- ").map(s => +s)
-                    console.log('p', p);
-                    if (p.length > 0) {
-                        const poly = _.chunk(p, 2)
-                            .map(a => a.reverse())
-                            .map(a => {
-                                return [
-                                    y - a[0],
-                                    //x - a[1]
-                                    a[1]
-                                ]
-                            })
-                        console.log('poly', poly);
-                        var polygon = L.polygon(poly, { color: 'red' }).addTo(map);
-                    }
-                });
+
+                buildPolygons({
+                    x: 2880, //width
+                    y: 5120, //height
+                    polygonsData: data
+                })
+
             })
+
+
+        function buildPolygons({ x, y, polygonsData, }) {
+
+            const polygons = [];
+
+            var yx = L.latLng;
+            var xy = function (x, y) {
+                if (L.Util.isArray(x)) {    // When doing xy([x, y]);
+                    return yx(x[1], x[0]);
+                }
+                return yx(y, x);  // When doing xy(x, y);
+            };
+
+            var bounds = [xy(0, 0), xy(x, y)];
+            var image = L.imageOverlay('img/Full Site@2x.png', bounds).addTo(map);
+            map.setView(xy(1262, 2452), -1);
+
+            const marker = L.marker([y / 2, x / 2], { draggable: 'true' }).addTo(map)
+            marker.on('dragend', function (event) {
+                var marker = event.target;
+                var position = marker.getLatLng();
+                console.log('position', position);
+                map.panTo(new L.LatLng(position.lat, position.lng))
+
+                polygons.filter(poly => {
+                    console.log('i', poly);
+                    const inside = isMarkerInsidePolygon(marker, poly);
+                    console.log('inside', inside);
+                    if (inside) {
+                        console.log('polygon', poly);
+                        const name = poly.options.polygonName;
+                        const room = poly.options.roomName;
+                        marker.bindPopup(`Inside ${name} ${room}`).openPopup();
+                    }
+                })
+            });
+
+            polygonsData.forEach(i => {
+                const p = i.points.split("- ").map(s => +s)
+                console.log('p', p);
+                if (p.length > 0) {
+                    const poly = _.chunk(p, 2)
+                        .map(a => a.reverse())
+                        .map(a => {
+                            return [
+                                y - a[0],
+                                //x - a[1]
+                                a[1]
+                            ]
+                        })
+                    console.log('poly', poly);
+                    var polygon = L.polygon(poly, { color: 'red', polygonName: i.polygonName, roomName: i.roomName }).addTo(map);
+                    polygons.push(polygon)
+                }
+            });
+
+            function isMarkerInsidePolygon(marker, poly) {
+                var inside = false;
+                var x = marker.getLatLng().lat, y = marker.getLatLng().lng;
+                for (var ii = 0; ii < poly.getLatLngs().length; ii++) {
+                    var polyPoints = poly.getLatLngs()[ii];
+                    for (var i = 0, j = polyPoints.length - 1; i < polyPoints.length; j = i++) {
+                        var xi = polyPoints[i].lat, yi = polyPoints[i].lng;
+                        var xj = polyPoints[j].lat, yj = polyPoints[j].lng;
+
+                        var intersect = ((yi > y) != (yj > y))
+                            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                        if (intersect) inside = !inside;
+                    }
+                }
+
+                return inside;
+            };
+        }
+
+
 
     </script>
 
